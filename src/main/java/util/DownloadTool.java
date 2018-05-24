@@ -5,14 +5,29 @@ import bean.BaiduImage;
 import java.io.*;
 import java.net.URL;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by bxyjisL on 2018/5/23.
  */
 public class DownloadTool {
-    public void download(List<BaiduImage> list, String outputPath) {
+    private ExecutorService pool;
+    private String outputPath;
+    private int count;
+    public DownloadTool(String outputPath,int threadNum){
+        pool= Executors.newFixedThreadPool(threadNum);
+        this.outputPath=outputPath;
+        count=1;
+    }
+    public void shutdown(){
+        pool.shutdown();
+    }
+    public void download(List<BaiduImage> list) {
         URL url = null;
         DataInputStream dataInputStream = null;
+        DownloadThread downloadThread=null;
         FileOutputStream fileOutputStream = null;
         BaiduImage image = null;
         for (int i = 0; i < list.size(); i++) {
@@ -21,23 +36,13 @@ public class DownloadTool {
                 //先判断文件是否存在
                 File file = new File(outputPath + image.getFilename());
                 if (file.exists()) {
-                    System.out.println(outputPath + image.getFilename() + "存在!");
+                    //因为一个页面会包3个页面的内容
+                    System.out.println(outputPath + image.getFilename() + "已存在!");
                     continue;
                 }
-                url = new URL(image.getUrl());
-                dataInputStream = new DataInputStream(url.openStream());
-                fileOutputStream = new FileOutputStream(outputPath + image.getFilename());
-                ByteArrayOutputStream output = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = dataInputStream.read(buffer)) > 0) {
-                    output.write(buffer, 0, length);
-                }
-                byte[] context = output.toByteArray();
-                fileOutputStream.write(output.toByteArray());
-                dataInputStream.close();
-                fileOutputStream.close();
-                System.out.println("第" + i + "张图:" + image.getFilename() + "下载完毕");
+                downloadThread=new DownloadThread(image,outputPath,count++);
+                pool.execute(downloadThread);
+
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {

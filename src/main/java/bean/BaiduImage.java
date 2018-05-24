@@ -6,11 +6,9 @@ package bean;
 public class BaiduImage {
     private String filename;
     private String url;
-
     public String getFilename() {
         return filename;
     }
-
     public void setFilename(String filename) {
         this.filename = filename;
     }
